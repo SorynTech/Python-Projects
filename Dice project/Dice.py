@@ -1,10 +1,10 @@
 import os
-def load_env_file(filepath='.env'):
-    """Load variables from .env file into a dictionary"""
-    env_vars = {}
 
+def load_env_file(filepath='.env'):
+    """Load variables from .env file into os.environ"""
     if not os.path.exists(filepath):
-        return env_vars
+        print(f"Warning: {filepath} not found")
+        return
 
     with open(filepath, 'r') as f:
         for line in f:
@@ -16,16 +16,17 @@ def load_env_file(filepath='.env'):
                     key, value = line.split('=', 1)
                     # Remove quotes if present
                     value = value.strip().strip('"').strip("'")
-                    env_vars[key.strip()] = value
+                    # Set in os.environ so it's accessible everywhere
+                    os.environ[key.strip()] = value
 
-    return env_vars
+# Load the variables
+load_env_file()
 
-
-# Usage
-env_vars = load_env_file()
-password = env_vars.get('PASSWORD')
+# Now it will work with os.getenv()
+password = os.getenv('PASSWORD')
 
 if password:
     print("Password found!")
+    print(password)
 else:
     print("Password not found")
