@@ -133,21 +133,148 @@ def login():
 
 
 def adminlogin():
+    global passwordattempts
     login_username = input("What is your Username: ")
     login_password = input("What is your Password: ")
 
-    if login_username != ADMIN_USER:
+    while login_username != ADMIN_USER:
         print("Invalid Username")
+        login_username = input("What is your Username: ")
+
         return False
-    if login_password != Admin_password:
+    while login_password != Admin_password:
         print("Invalid Password")
-        return False
+        passwordattempts = passwordattempts+1
+        print("Remaining Attempts:",passwordattempts)
+        if passwordattempts >= 3:
+            print("You are not an Admin Nice try")
+            main()
+        login_password = input("What is your Password: ")
 
     print("Welcome Admin")
     return True
 
+def load_users():
+    """Load users from userdata.txt file"""
+    users = {}
+    try:
+        with open('userdata.txt', 'r') as f:
+            for line in f:
+                line = line.strip()
+                if ':' in line:
+                    username, password = line.split(':')
+                    users[username] = password
+    except FileNotFoundError:
+        # File doesn't exist yet, that's okay
+        pass
+    return users
+
+
+def save_users(users):
+    """Save users to userdata.txt file"""
+    with open('userdata.txt', 'w') as f:
+        for username, password in users.items():
+            f.write(f"{username}:{password}\n")
+
+
+def adminpanel():
+    users = load_users()  # Load users at the start
+
+    Rabbit.sleep(1)
+    print("\n=== Admin Panel ===")
+    print("1: Change a Users Username")
+    print("2: See all users")
+    print("3: Delete a User account")
+    print("4: Exit Admin Panel")
+
+    choice = input("\nEnter your choice (1-4): ").strip()
+
+    if choice == "1":
+        change_username()
+    elif choice == "2":
+        see_all_users()
+    elif choice == "3":
+        delete_user()
+    elif choice == "4":
+        print("Exiting admin panel...")
+        main()
+    else:
+        print("Invalid choice. Please try again.")
+
+    # Loop back to admin panel
+    adminpanel()
+
+
+def change_username():
+    """Change a user's username"""
+    users = load_users()  # Reload users
+
+    print("\n--- Change Username ---")
+
+    if not users:
+        print("No users in the system.")
+        return
+
+    old_username = input("Enter the current username: ").strip()
+
+    if old_username not in users:
+        print(f"User '{old_username}' not found.")
+        return
+
+    new_username = input("Enter the new username: ").strip()
+
+    if new_username in users:
+        print(f"Username '{new_username}' already exists.")
+        return
+
+    # Transfer user data to new username
+    users[new_username] = users.pop(old_username)
+    save_users(users)  # Save changes
+    print(f"Successfully changed username from '{old_username}' to '{new_username}'")
+
+
+def see_all_users():
+    """Display all users in the system"""
+    users = load_users()  # Reload users
+
+    print("\n--- All Users ---")
+
+    if not users:
+        print("No users in the system.")
+        return
+
+    print(f"Total users: {len(users)}")
+    for i, username in enumerate(users.keys(), 1):
+        print(f"{i}. {username}")
+
+
+def delete_user():
+    """Delete a user account"""
+    users = load_users()  # Reload users
+
+    print("\n--- Delete User Account ---")
+
+    if not users:
+        print("No users in the system.")
+        return
+
+    username = input("Enter the username to delete: ").strip()
+
+    if username not in users:
+        print(f"User '{username}' not found.")
+        return
+
+    confirm = input(f"Are you sure you want to delete '{username}'? (yes/no): ").strip().lower()
+
+    if confirm == "yes":
+        del users[username]
+        save_users(users)  # Save changes
+        print(f"User '{username}' has been deleted successfully.")
+    else:
+        print("Deletion cancelled.")
 
 def main():
+    global passwordattempts
     print("1. Signup")
     print("2. Login")
     choice = input("Choose: ")
@@ -163,9 +290,14 @@ def main():
     elif choice == login_secret:
         if adminlogin():
             print("Admin access granted!")
+            global passwordattempts
+            passwordattempts = 0
+            adminpanel()
         else:
-            print("Admin login failed.")
+            main()
     else:
         print("Invalid choice")
+
+
 
 main()
